@@ -1,17 +1,14 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
-	"time"
 
+	"github.com/AlexBlacksmith/real-estate-mockup-backend/db"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func main() {
@@ -23,15 +20,13 @@ func main() {
 	dbUsername := os.Getenv("DB_USERNAME")
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")
+
 	connectUrl := "mongodb+srv://" + dbUsername + ":" + dbPassword + "@testcluster.nhs5bd3.mongodb.net/?retryWrites=true&w=majority"
 
-	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
-	clientOptions := options.Client().
-		ApplyURI(connectUrl).
-		SetServerAPIOptions(serverAPIOptions)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	client, ctx, cancel, err := db.Connect(connectUrl)
+
 	defer cancel()
-	client, err := mongo.Connect(ctx, clientOptions)
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,11 +51,12 @@ func main() {
 
 	defer cursor.Close(ctx)
 
+	port := os.Getenv("PORT")
 	r := gin.Default()
 	r.GET("/users", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"users": users,
 		})
 	})
-	r.Run()
+	r.Run(":" + port)
 }
